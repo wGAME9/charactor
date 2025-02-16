@@ -33,12 +33,43 @@ var (
 
 type game struct {
 	runnerImage *ebiten.Image
+	runnerX     int
+	runnerY     int
 	count       int
 }
 
 func (g *game) Update() error {
 	g.count++
 	g.count %= 40
+
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		g.runnerX -= 2
+		if g.runnerX < 0 {
+			g.runnerX = 0
+		}
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		g.runnerX += 2
+		if g.runnerX > screenWidth-frameWidth {
+			g.runnerX = screenWidth - frameWidth
+		}
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyUp) {
+		g.runnerY -= 2
+		if g.runnerY < 0 {
+			g.runnerY = 0
+		}
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyDown) {
+		g.runnerY += 2
+		if g.runnerY > screenHeight-frameHeight {
+			g.runnerY = screenHeight - frameHeight
+		}
+	}
+
 	return nil
 }
 
@@ -52,12 +83,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 
 	options := &ebiten.DrawImageOptions{}
 
-	// located to the center of the screen
-	options.GeoM.Translate(screenWidth/2, screenHeight/2)
-
-	// move -frameWidth/2, -frameHeight/2 so the character center is located at the
-	// center of the screen
-	options.GeoM.Translate(-float64(frameWidth)/2, -float64(frameHeight)/2)
+	options.GeoM.Translate(float64(g.runnerX), float64(g.runnerY))
 
 	// choose which frame to draw
 	idx := (g.count / speed) % secondLineFrameCount
@@ -92,8 +118,14 @@ func main() {
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Drawing character")
 
+	runnerStartingX, runnerStartingY := screenWidth/2, screenHeight/2
+	runnerStartingX -= frameWidth / 2
+	runnerStartingY -= frameHeight / 2
+
 	game := &game{
 		runnerImage: ebiten.NewImageFromImage(runnerImage),
+		runnerX:     runnerStartingX,
+		runnerY:     runnerStartingY,
 		count:       0,
 	}
 

@@ -13,17 +13,6 @@ import (
 const (
 	screenWidth  = 320
 	screenHeight = 240
-
-	frameOX     = 0
-	frameOY     = 32
-	frameWidth  = 32
-	frameHeight = 32
-
-	firstLineFrameCount  = 5
-	secondLineFrameCount = 8
-	thirdLineFrameCount  = 4
-
-	speed = 5
 )
 
 var (
@@ -32,55 +21,19 @@ var (
 )
 
 type game struct {
-	runnerImage *ebiten.Image
-	runnerX     int
-	runnerY     int
-	isMoving    bool
-	count       int
+	player *player
 }
 
 func (g *game) Update() error {
-	g.isMoving = false
-	g.count++
-	g.count %= 40
-
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		g.isMoving = true
-		g.runnerX -= 2
-		if g.runnerX < 0 {
-			g.runnerX = 0
-		}
-	}
-
-	if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		g.isMoving = true
-		g.runnerX += 2
-		if g.runnerX > screenWidth-frameWidth {
-			g.runnerX = screenWidth - frameWidth
-		}
-	}
-
-	if ebiten.IsKeyPressed(ebiten.KeyUp) {
-		g.isMoving = true
-		g.runnerY -= 2
-		if g.runnerY < 0 {
-			g.runnerY = 0
-		}
-	}
-
-	if ebiten.IsKeyPressed(ebiten.KeyDown) {
-		g.isMoving = true
-		g.runnerY += 2
-		if g.runnerY > screenHeight-frameHeight {
-			g.runnerY = screenHeight - frameHeight
-		}
+	if err := g.player.update(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (g *game) Draw(screen *ebiten.Image) {
-	g.drawPlayer(screen)
+	g.player.draw(screen)
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -101,73 +54,20 @@ func main() {
 	runnerStartingX -= frameWidth / 2
 	runnerStartingY -= frameHeight / 2
 
+	player := &player{
+		imageTiles: ebiten.NewImageFromImage(runnerImage),
+		x:          runnerStartingX,
+		y:          runnerStartingY,
+		count:      0,
+		isMoving:   false,
+		speed:      speed,
+	}
+
 	game := &game{
-		runnerImage: ebiten.NewImageFromImage(runnerImage),
-		runnerX:     runnerStartingX,
-		runnerY:     runnerStartingY,
-		count:       0,
+		player: player,
 	}
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func (g *game) drawPlayer(screen *ebiten.Image) {
-	options := &ebiten.DrawImageOptions{}
-	options.GeoM.Translate(float64(g.runnerX), float64(g.runnerY))
-
-	screen.DrawImage(g.getPlayerImage(), options)
-}
-
-func (g *game) getPlayerImage() *ebiten.Image {
-	switch {
-	case g.isMoving:
-		return g.getPlayerMovingImage()
-	default:
-		return g.getPlayerIdleImage()
-	}
-}
-
-func (g *game) getPlayerIdleImage() *ebiten.Image {
-	idx := (g.count / 10) % firstLineFrameCount
-
-	startingX, startingY := frameOX+idx*frameWidth, 0
-	endingX, endingY := startingX+frameWidth, startingY+frameHeight
-
-	character := g.runnerImage.SubImage(
-		image.Rect(
-			startingX, startingY,
-			endingX, endingY,
-		),
-	).(*ebiten.Image)
-
-	return character
-}
-
-func (g *game) getPlayerMovingImage() *ebiten.Image {
-	// Runner image is 256x96, and the character is 32x32.
-	//
-	// Runner image contain 3 lines of character frames
-	// first line has 5 frames, second line has 8 frames, and third line has 4 frames.
-	//
-	// In this example, we will only use the second line.
-
-	// choose which frame to draw
-	idx := (g.count / speed) % secondLineFrameCount
-
-	// locate to the frame we want to draw
-	// startingX will be frameOX + idx * frameWidth (x coordinate of frame at idx)
-	// startingY will be frameOY * 1 (y coordinate of second line)
-	startingX, startingY := frameOX+idx*frameWidth, frameOY*1
-	endingX, endingY := startingX+frameWidth, startingY+frameHeight
-
-	character := g.runnerImage.SubImage(
-		image.Rect(
-			startingX, startingY,
-			endingX, endingY,
-		),
-	).(*ebiten.Image)
-
-	return character
 }
